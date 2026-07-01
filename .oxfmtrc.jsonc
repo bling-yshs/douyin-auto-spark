@@ -2,7 +2,14 @@
   "$schema": "node_modules/oxfmt/configuration_schema.json",
   "semi": false,
   "singleQuote": true,
-  "ignorePatterns": ["node_modules", "dist", "coverage"],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "**/*.{yml,yaml}",
+    "assets/yiyan.json",
+    "**/*.md"
+  ],
   "overrides": [
     {
       "files": ["*.json", "*.jsonc"],

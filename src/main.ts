@@ -34,17 +34,44 @@ async function main(): Promise<void> {
 
   await page.waitForTimeout(10000)
 
-  for (const targetName of targetNames) {
-    const target = page.locator('[data-e2e="conversation-item"]').filter({
-      has: page.getByText(targetName, { exact: true }),
-    })
-    await target.click()
+  const searchInput = page.locator('input.semi-input[placeholder="搜索"]').first()
+  await searchInput.waitFor({ state: 'visible', timeout: 10000 })
 
-    const editorInput = page.locator('.messageEditorimChatEditorContainer [data-slate-editor="true"][contenteditable="true"]')
-    await editorInput.waitFor({ state: 'visible' })
+  for (const targetName of targetNames) {
+    const name = String(targetName).trim()
+    if (!name) continue
+
+    console.log(`开始搜索会话：${name}`)
+    await searchInput.fill('')
+    await searchInput.fill(name)
+    await page.waitForTimeout(1000)
+
+    const searchResult = page
+      .locator('.SearchPanelitembox')
+      .filter({
+        has: page.getByText(name, { exact: true }),
+      })
+      .first()
+
+    if (!(await searchResult.isVisible({ timeout: 5000 }).catch(() => false))) {
+      console.log(`找不到搜索结果，已跳过：${name}`)
+      continue
+    }
+
+    await searchResult.getByText('发私信', { exact: true }).click({ timeout: 5000 })
+    console.log(`已打开私信：${name}`)
+
+    const editorInput = page
+      .locator(
+        '.messageEditorimChatEditorContainer [data-slate-editor="true"][contenteditable="true"]',
+      )
+      .first()
+    await editorInput.waitFor({ state: 'visible', timeout: 10000 })
     await editorInput.click()
     await page.keyboard.insertText(pickRandomYiyan(yiyans).hitokoto)
     await page.keyboard.press('Enter')
+    console.log(`已发送消息：${name}`)
+    await page.waitForTimeout(1000)
   }
 
   await page.waitForTimeout(5000)
@@ -143,12 +170,18 @@ function resolveDouyinTargetNames(): string[] {
   const targetNamesText = process.env[DOUYIN_TARGET_NAMES_KEY]?.trim()
 
   if (!targetNamesText) {
-    throw new Error(`请设置环境变量 ${DOUYIN_TARGET_NAMES_KEY}，或在 .env 中配置 ${DOUYIN_TARGET_NAMES_KEY}`)
+    throw new Error(
+      `请设置环境变量 ${DOUYIN_TARGET_NAMES_KEY}，或在 .env 中配置 ${DOUYIN_TARGET_NAMES_KEY}`,
+    )
   }
 
   const targetNames = JSON.parse(targetNamesText) as string[]
 
-  if (!Array.isArray(targetNames) || targetNames.length === 0 || targetNames.some((targetName) => typeof targetName !== 'string' || !targetName.trim())) {
+  if (
+    !Array.isArray(targetNames) ||
+    targetNames.length === 0 ||
+    targetNames.some((targetName) => typeof targetName !== 'string' || !targetName.trim())
+  ) {
     throw new Error(`${DOUYIN_TARGET_NAMES_KEY} 必须是非空字符串数组 JSON`)
   }
 
