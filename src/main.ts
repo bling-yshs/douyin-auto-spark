@@ -35,10 +35,45 @@ async function main(): Promise<void> {
   await page.waitForTimeout(10000)
 
   for (const targetName of targetNames) {
-    const target = page.locator('[data-e2e="conversation-item"]').filter({
-      has: page.getByText(targetName, { exact: true }),
+    cconst name = String(targetName).trim()
+    if (!name) continue
+
+console.log(`开始查找会话：${name}`)
+
+// 鼠标移到左侧聊天列表区域，先滚回顶部
+await page.mouse.move(250, 450)
+for (let i = 0; i < 12; i++) {
+  await page.mouse.wheel(0, -1200)
+  await page.waitForTimeout(100)
+}
+
+let targetClicked = false
+
+// 从上往下滚动查找会话
+for (let i = 0; i < 45; i++) {
+  const target = page
+    .locator('[data-e2e="conversation-item"]')
+    .filter({
+      has: page.getByText(name, { exact: true }),
     })
-    await target.click()
+    .first()
+
+  if (await target.isVisible({ timeout: 800 }).catch(() => false)) {
+    await target.click({ timeout: 5000 })
+    targetClicked = true
+    console.log(`已找到会话：${name}`)
+    break
+  }
+
+  await page.mouse.move(250, 450)
+  await page.mouse.wheel(0, 900)
+  await page.waitForTimeout(600)
+}
+
+if (!targetClicked) {
+  console.log(`找不到会话，已跳过：${name}`)
+  continue
+}
 
     const editorInput = page.locator('.messageEditorimChatEditorContainer [data-slate-editor="true"][contenteditable="true"]')
     await editorInput.waitFor({ state: 'visible' })
