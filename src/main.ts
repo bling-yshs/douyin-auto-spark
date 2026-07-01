@@ -35,7 +35,7 @@ async function main(): Promise<void> {
   await page.waitForTimeout(10000)
 
   for (const targetName of targetNames) {
-    cconst name = String(targetName).trim()
+    const name = String(targetName).trim()
     if (!name) continue
 
 console.log(`开始查找会话：${name}`)
