@@ -42,6 +42,9 @@ async function main(): Promise<void> {
     const searchInput = page.locator('input.semi-input[placeholder="搜索"]').first()
     await searchInput.waitFor({ state: 'visible', timeout: 10000 })
 
+    // 记录未命中的会话，等其余好友都发完再统一报错，避免一个人改名连累当天所有人。
+    const missingNames: string[] = []
+
     for (const targetName of targetNames) {
       const name = String(targetName).trim()
       if (!name) continue
@@ -60,6 +63,7 @@ async function main(): Promise<void> {
 
       if (!(await searchResult.isVisible({ timeout: 5000 }).catch(() => false))) {
         console.log(`找不到搜索结果，已跳过：${name}`)
+        missingNames.push(name)
         continue
       }
 
@@ -91,6 +95,15 @@ async function main(): Promise<void> {
 
       await readline.question('Chrome 已打开抖音聊天页，按回车键关闭浏览器...')
       readline.close()
+    }
+
+    // 静默跳过会让任务以成功状态结束，失败告警便永远不会触发，因此这里必须抛错。
+    if (missingNames.length > 0) {
+      throw new Error(
+        `以下会话未找到，火花可能已经中断：${missingNames.join('、')}。` +
+          `好友改昵称是最常见的原因，建议在抖音中为好友设置备注名，` +
+          `并把备注名填入 ${DOUYIN_TARGET_NAMES_KEY}，这样好友再改昵称也不会影响续火。`,
+      )
     }
   } catch (error) {
     await captureFailureScreenshot(page)

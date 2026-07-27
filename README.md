@@ -98,13 +98,15 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 | Secret | 必填 | 说明 |
 |:---|:---:|:---|
 | `DOUYIN_COOKIE` | ✅ | 抖音 Cookie JSON 字符串数组 （上面用浏览器插件获取的那个） |
-| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的朋友的用户名称， JSON 字符串数组，例如 ["暮邵落白"] （不会写 JSON 可以问 AI） |
+| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的朋友的用户名称， JSON 字符串数组，例如 ["暮邵落白"] （不会写 JSON 可以问 AI）。建议在抖音中给好友设置备注名并填备注名，好友改昵称也不会中断续火 |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送正文 |
 | `MAIL_ADDRESS` | ❌ | 任务失败提醒的收件邮箱，同时作为邮件发件人地址 |
 | `MAIL_USERNAME` | ❌ | QQ 邮箱 SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
 | `MAIL_PASSWORD` | ❌ | QQ 邮箱 SMTP 授权码 |
 
 配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会向 `MAIL_ADDRESS` 发送提醒邮件，并附带失败图片。
+
+如果配置的会话有一个没找到（通常是好友改了昵称），脚本会先把其余好友的消息发完，再以失败状态结束并告警，因此不会出现「任务显示成功但火花已经断了」的情况。
 
 #### 3️⃣ 手动运行一次
 
@@ -150,6 +152,12 @@ cp .env.example .env
 ```dotenv
 DOUYIN_TARGET_NAMES='["暮邵落白"]'
 ```
+
+> 💡 **建议填备注名而不是昵称**
+>
+> 脚本靠聊天页搜索框定位好友，好友一旦改昵称就会搜不到，火花随之中断。
+> 在抖音中给好友设置备注后，搜索框同样能按备注名搜到人，而备注是你自己设置的，
+> 好友再怎么改昵称都不受影响。设置方式：好友主页 → 右上角 `...` → 设置备注。
 
 `DOUYIN_COOKIE` 使用准备工作中导出的 Cookie JSON 数组：
 
