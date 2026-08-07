@@ -1,0 +1,33 @@
+name: 🧪 PR 检查
+
+on:
+  pull_request:
+
+jobs:
+  run:
+    runs-on: ubuntu-22.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.61.0-jammy
+    timeout-minutes: 15
+
+    steps:
+      - name: 克隆当前仓库 (Clone current repo)
+        uses: actions/checkout@v7
+
+      - name: 安装 unzip (Install unzip)
+        run: apt-get update && apt-get install -y unzip
+
+      - name: 安装 Bun (Set up Bun)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 安装运行时依赖 (Install dependencies)
+        run: bun install --production --ignore-scripts
+
+      - name: 续一次火 (Run spark job)
+        env:
+          DOUYIN_COOKIE: ${{ secrets.TEST_DOUYIN_COOKIE }}
+          DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
+          YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
+        run: bun src/main.ts
