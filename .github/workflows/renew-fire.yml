@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: 克隆当前仓库 (Clone current repo)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 安装 unzip (Install unzip)
         run: apt-get update && apt-get install -y unzip
