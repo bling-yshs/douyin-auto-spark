@@ -6,28 +6,27 @@ on:
 jobs:
   run:
     runs-on: ubuntu-22.04
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.0-jammy
     timeout-minutes: 15
 
     steps:
       - name: 克隆当前仓库 (Clone current repo)
         uses: actions/checkout@v7
 
-      - name: 安装 unzip (Install unzip)
-        run: apt-get update && apt-get install -y unzip
-
-      - name: 安装 Bun (Set up Bun)
-        uses: oven-sh/setup-bun@v2
+      - name: 安装 pnpm (Set up pnpm)
+        uses: pnpm/action-setup@v6
         with:
-          bun-version: latest
+          version: 11.19.0
 
-      - name: 安装运行时依赖 (Install dependencies)
-        run: bun install --production --ignore-scripts
+      - name: 安装 Node.js (Set up Node.js)
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
 
-      - name: 续一次火 (Run spark job)
+      - name: 安装依赖 (Install dependencies)
+        run: pnpm install --frozen-lockfile
         env:
-          DOUYIN_COOKIE: ${{ secrets.TEST_DOUYIN_COOKIE }}
-          DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
-          YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
-        run: bun src/main.ts
+          HUSKY: "0"
+
+      - name: 运行检查 (Run check)
+        run: pnpm check
