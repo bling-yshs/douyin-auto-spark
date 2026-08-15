@@ -22,6 +22,8 @@ jobs:
 
       - name: 安装 Python (Setup Python)
         uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.13' 
 
       - name: 安装 Bun (Set up Bun)
         uses: oven-sh/setup-bun@v2
