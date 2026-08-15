@@ -37,9 +37,12 @@ jobs:
           DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
           YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
           SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
-        run: bun src/main.ts
+        run: | 
+          echo ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
+          bun src/main.ts
 
       - name: 上传失败截图
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v7.0.1
         with:
           path: artifacts/failure-screenshot.png
