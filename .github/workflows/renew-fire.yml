@@ -29,7 +29,10 @@ jobs:
           bun-version: latest
 
       - name: 安装运行时依赖 (Install dependencies)
-        run: bun install --production --ignore-scripts
+        run: |
+          bun install --production --ignore-scripts
+          python -m pip install --upgrade pip
+          pip install serverchan-sdk
 
       - name: 续一次火 (Run spark job)
         env:
@@ -52,18 +55,14 @@ jobs:
         env:
           LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           FTQQ_SENDKEY: ${{ secrets.FTQQ_SENDKEY }}
-        run: |
-          pip install serverchan-sdk
-          python3 src/pushWX.py
+        run: python3 src/pushWX.py
 
       - name: 发送成功消息 (Send success message)
         if: ${{ success() }}
         env:
           LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           FTQQ_SENDKEY: ${{ secrets.FTQQ_SENDKEY }}
-        run: |
-          pip install serverchan-sdk
-          python3 src/pushWXSuccess.py
+        run: python3 src/pushWXSuccess.py
 
 #      - name: Setup tmate session
 #        uses: mxschmitt/action-tmate@v3
