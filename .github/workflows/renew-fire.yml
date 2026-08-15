@@ -39,6 +39,11 @@ jobs:
           SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
         run: bun src/main.ts
 
+      - name: 上传失败截图
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: artifacts/failure-screenshot.png
+
       - name: 发送失败消息 (Send failure message)
         if: ${{ failure() }}
         env:
@@ -47,6 +52,15 @@ jobs:
         run: |
           pip install serverchan-sdk
           python3 src/pushWX.py
+
+      - name: 发送成功消息 (Send success message)
+        if: ${{ success() }}
+        env:
+          LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FTQQ_SENDKEY: ${{ secrets.FTQQ_SENDKEY }}
+        run: |
+          pip install serverchan-sdk
+          python3 src/pushWXSuccess.py
 
 #      - name: Setup tmate session
 #        uses: mxschmitt/action-tmate@v3
