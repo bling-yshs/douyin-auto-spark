@@ -100,6 +100,7 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 | `DOUYIN_COOKIE` | ✅ | 抖音 Cookie JSON 字符串数组 （上面用浏览器插件获取的那个） |
 | `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的朋友的用户名称， JSON 字符串数组，例如 ["暮邵落白"] （不会写 JSON 可以问 AI）。建议在抖音中给好友设置备注名并填备注名，好友改昵称也不会中断续火 |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送正文 |
+| `SPARK_MESSAGE_TEMPLATE` | ❌ | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
 | `MAIL_ADDRESS` | ❌ | 任务失败提醒的收件邮箱，同时作为邮件发件人地址 |
 | `MAIL_USERNAME` | ❌ | QQ 邮箱 SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
 | `MAIL_PASSWORD` | ❌ | QQ 邮箱 SMTP 授权码 |
@@ -145,6 +146,7 @@ cp .env.example .env
 | `DOUYIN_COOKIE` | ✅ | - | 抖音 Cookie JSON 字符串数组 |
 | `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的会话名称 JSON 字符串数组 |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送正文 |
+| `SPARK_MESSAGE_TEMPLATE` | ❌ | - | 自定义火花消息模板，见下方「自定义消息模板」 |
 | `PLAYWRIGHT_BROWSER_PATH` | ❌ | - | 本机 Chrome / Chromium / Edge 可执行文件路径，不填则使用 Playwright 默认浏览器 |
 | `PLAYWRIGHT_HEADLESS` | ❌ | `true` | 是否使用无头模式 |
 | `AUTO_CLOSE` | ❌ | `true` | 发送完成后是否自动关闭浏览器 |
@@ -174,6 +176,25 @@ pnpm dev
 ```
 
 脚本会打开 `https://www.douyin.com/chat`，等待页面加载，定位配置中的会话名称，发送随机一言，并在发送后等待约 5 秒再退出。
+
+## ✉️ 自定义消息模板
+
+配置 `SPARK_MESSAGE_TEMPLATE` 可自定义消息内容：
+
+```dotenv
+SPARK_MESSAGE_TEMPLATE={{friend}}，今天的火花到账啦🔥\n{{yiyan}}\n——「{{from}}」\n{{date}} {{weekday}}
+```
+
+支持的占位符：
+
+| 占位符 | 说明 |
+|:---|:---|
+| `{{friend}}` | 好友名 |
+| `{{yiyan}}` | 一言正文 |
+| `{{from}}` | 一言出处 |
+| `{{date}}` | 日期 `yyyy-MM-dd` |
+| `{{time}}` | 时间 `HH:mm` |
+| `{{weekday}}` | 星期几 |
 
 ## 🔨 开发命令
 

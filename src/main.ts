@@ -3,13 +3,34 @@ import { chromium, type Cookie, type Page } from 'playwright'
 import { mkdir, readFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline/promises'
 import { stdin as input, stdout as output } from 'node:process'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import type { DouyinCookie, SameSite } from './types/douyin-cookie'
 import type { Yiyan } from './types/yiyan'
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
+dayjs.locale('zh-cn')
 
 const DOUYIN_COOKIE_KEY = 'DOUYIN_COOKIE'
 const DOUYIN_TARGET_NAMES_KEY = 'DOUYIN_TARGET_NAMES'
 const YIYAN_INCLUDE_SOURCE_KEY = 'YIYAN_INCLUDE_SOURCE'
+const SPARK_MESSAGE_TEMPLATE_KEY = 'SPARK_MESSAGE_TEMPLATE'
 const FAILURE_SCREENSHOT_PATH = 'artifacts/failure-screenshot.png'
+
+const MESSAGE_TEMPLATE_PLACEHOLDER_PATTERN = /\{\{\s*([a-zA-Z]+)\s*\}\}/g
+const MESSAGE_TEMPLATE_PLACEHOLDERS = [
+  'friend',
+  'yiyan',
+  'from',
+  'date',
+  'time',
+  'weekday',
+] as const
+
+type MessageTemplatePlaceholder = (typeof MESSAGE_TEMPLATE_PLACEHOLDERS)[number]
 
 /**
  * 启动本机 Chrome 浏览器并携带 Cookie 访问抖音聊天页。
@@ -19,9 +40,13 @@ async function main(): Promise<void> {
   const headless = resolveHeadless()
   const autoClose = resolveAutoClose()
   const includeYiyanSource = resolveYiyanIncludeSource()
+  const messageTemplate = resolveSparkMessageTemplate()
   const douyinCookies = resolveDouyinCookies()
   const targetNames = resolveDouyinTargetNames()
   const yiyans = await resolveYiyans()
+  // 模板未用到一言时无需抽取；默认格式始终需要。
+  const needsYiyan =
+    messageTemplate === undefined || /\{\{\s*(yiyan|from)\s*\}\}/.test(messageTemplate)
   const browser = await chromium.launch({
     headless,
     ...(browserPath ? { executablePath: browserPath } : {}),
@@ -77,8 +102,20 @@ async function main(): Promise<void> {
         .first()
       await editorInput.waitFor({ state: 'visible', timeout: 10000 })
       await editorInput.click()
-      const yiyan = pickRandomYiyan(yiyans)
-      const message = includeYiyanSource ? `${yiyan.hitokoto}\n——「${yiyan.from}」` : yiyan.hitokoto
+
+      let message: string
+
+      if (messageTemplate !== undefined) {
+        message = renderMessageTemplate(
+          messageTemplate,
+          name,
+          needsYiyan ? pickRandomYiyan(yiyans) : undefined,
+        )
+      } else {
+        const yiyan = pickRandomYiyan(yiyans)
+        message = includeYiyanSource ? `${yiyan.hitokoto}\n——「${yiyan.from}」` : yiyan.hitokoto
+      }
+
       await page.keyboard.insertText(message)
       await page.keyboard.press('Enter')
       console.log(`已发送消息：${name}`)
@@ -204,6 +241,61 @@ function resolveYiyanIncludeSource(): boolean {
   }
 
   throw new Error(`${YIYAN_INCLUDE_SOURCE_KEY} 只能配置为 true 或 false`)
+}
+
+/**
+ * 解析自定义火花消息模板，未配置时返回 undefined 以沿用默认的一言格式。
+ */
+function resolveSparkMessageTemplate(): string | undefined {
+  const template = process.env[SPARK_MESSAGE_TEMPLATE_KEY]?.trim()
+
+  if (!template) {
+    return undefined
+  }
+
+  // 启动时就校验占位符，避免把写错的 {{xxx}} 原样发给好友。
+  const unknownPlaceholders = [
+    ...new Set(
+      [...template.matchAll(MESSAGE_TEMPLATE_PLACEHOLDER_PATTERN)]
+        .map((match) => match[1])
+        .filter(
+          (name) => !MESSAGE_TEMPLATE_PLACEHOLDERS.includes(name as MessageTemplatePlaceholder),
+        ),
+    ),
+  ]
+
+  if (unknownPlaceholders.length > 0) {
+    throw new Error(
+      `${SPARK_MESSAGE_TEMPLATE_KEY} 中存在未识别的占位符：${unknownPlaceholders
+        .map((name) => `{{${name}}}`)
+        .join(
+          '、',
+        )}。支持的占位符：${MESSAGE_TEMPLATE_PLACEHOLDERS.map((name) => `{{${name}}}`).join(' ')}`,
+    )
+  }
+
+  // .env 中难以书写多行值，因此支持用字面 \n 表示换行。
+  return template.replace(/\\n/g, '\n')
+}
+
+/**
+ * 将消息模板渲染为实际发送的文本。
+ */
+function renderMessageTemplate(template: string, friend: string, yiyan: Yiyan | undefined): string {
+  // 定时任务跑在 UTC 时区的 runner 上，日期占位符统一按上海时区计算。
+  const now = dayjs().tz('Asia/Shanghai')
+  const placeholderValues: Record<MessageTemplatePlaceholder, string> = {
+    friend,
+    yiyan: yiyan?.hitokoto ?? '',
+    from: yiyan?.from ?? '',
+    date: now.format('YYYY-MM-DD'),
+    time: now.format('HH:mm'),
+    weekday: now.format('dddd'),
+  }
+
+  return template.replace(MESSAGE_TEMPLATE_PLACEHOLDER_PATTERN, (_match, name: string) => {
+    return placeholderValues[name as MessageTemplatePlaceholder] ?? ''
+  })
 }
 
 /**

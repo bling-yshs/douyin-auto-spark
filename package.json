@@ -12,6 +12,7 @@
     "fix": "oxlint --fix && oxfmt"
   },
   "dependencies": {
+    "dayjs": "1.11.21",
     "dotenv": "17.4.2",
     "playwright": "1.61.0"
   },
