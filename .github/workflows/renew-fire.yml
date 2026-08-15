@@ -3,7 +3,7 @@ name: 🚀 续一次火
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 23 * * *"
       timezone: "Asia/Shanghai"
 
 jobs:
@@ -19,6 +19,9 @@ jobs:
 
       - name: 安装 unzip (Install unzip)
         run: apt-get update && apt-get install -y unzip
+
+      - name: 安装 Python (Setup Python)
+        uses: actions/setup-python@v7.0.0
 
       - name: 安装 Bun (Set up Bun)
         uses: oven-sh/setup-bun@v2
@@ -36,25 +39,14 @@ jobs:
           SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
         run: bun src/main.ts
 
-      - name: 发送失败邮件 (Send failure email)
+      - name: 发送失败消息 (Send failure message)
         if: ${{ failure() }}
-        uses: dawidd6/action-send-mail@v18
-        with:
-          server_address: smtp.qq.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          subject: 抖音续火任务失败
-          to: ${{ secrets.MAIL_ADDRESS }}
-          from: ${{ secrets.MAIL_ADDRESS }}
-          attachments: artifacts/failure-screenshot.png
-          body: |
-            抖音续火任务执行失败
-            仓库：${{ github.repository }}
-            运行链接：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            如确认配置无误后仍然失败，请在上游仓库发送 issue：
-            https://github.com/bling-yshs/douyin-auto-spark/issues
+        env:
+          LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FTQQ_SENDKEY: ${{ secrets.FTQQ_SENDKEY }}
+        run: |
+          pip install serverchan-sdk
+          python3 src/pushWX.py
 
 #      - name: Setup tmate session
 #        uses: mxschmitt/action-tmate@v3
