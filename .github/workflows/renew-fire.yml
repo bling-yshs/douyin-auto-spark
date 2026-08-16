@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: mcr.microsoft.com/playwright:v1.61.0-jammy
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: 克隆当前仓库 (Clone current repo)
@@ -30,6 +30,7 @@ jobs:
 
       - name: 续一次火 (Run spark job)
         env:
+          DOUYIN_ACCOUNTS: ${{ secrets.DOUYIN_ACCOUNTS }}
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
           YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
@@ -48,7 +49,7 @@ jobs:
           subject: 抖音续火任务失败
           to: ${{ secrets.MAIL_ADDRESS }}
           from: ${{ secrets.MAIL_ADDRESS }}
-          attachments: artifacts/failure-screenshot.png
+          attachments: artifacts/*.png
           body: |
             抖音续火任务执行失败
             仓库：${{ github.repository }}
