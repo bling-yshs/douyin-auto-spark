@@ -29,12 +29,17 @@ jobs:
         run: |
           bun install --production --ignore-scripts
 
+      - name: 获取当前公网 IP (Resolve public IP)
+        id: ip
+        run: |
+          echo "value=$(curl -4 -s https://api.ipify.org)" >> "$GITHUB_OUTPUT"
+
       - name: 续一次火 (Run spark job)
         env:
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
           YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
-          SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }} + $(curl -4 -s https://api.ipify.org)
+          SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}\n+ IP：${{ steps.ip.outputs.value }}
         run: | 
           echo ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
           bun src/main.ts
@@ -42,13 +47,15 @@ jobs:
       - name: 发送构建失败通知
         if: failure()
         run: |
+          desp="执行时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')$'\n'IP：$(curl -4 -s https://api.ipify.org)，$'\n'$(curl -6 -s https://api64.ipify.org || echo '无 IPv6')分支 ${{ github.ref_name }}，提交 ${{ github.sha }}，详情 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           curl -sS -X POST "https://sctapi.ftqq.com/${{ secrets.FTQQ_SENDKEY }}.send" \
             -d "title=可能未能正常续火花" \
-            -d "desp=执行时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')\nIP：$(curl -4 -s https://api.ipify.org)，\n$(curl -6 -s https://api64.ipify.org || echo '无 IPv6')分支 ${{ github.ref_name }}，提交 ${{ github.sha }}，详情 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            -d "desp=$desp"
 
       - name: 发送构建成功通知
         if: success()
         run: |
+          desp="执行时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')$'\n'IP：$(curl -4 -s https://api.ipify.org)，$'\n'$(curl -6 -s https://api64.ipify.org || echo '无 IPv6')分支 ${{ github.ref_name }}，提交 ${{ github.sha }}，详情 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           curl -sS -X POST "https://sctapi.ftqq.com/${{ secrets.FTQQ_SENDKEY }}.send" \
             -d "title=已完成今日自动续火花任务" \
-            -d "desp=执行时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')\nIP：$(curl -4 -s https://api.ipify.org)，\n$(curl -6 -s https://api64.ipify.org || echo '无 IPv6')分支 ${{ github.ref_name }}，提交 ${{ github.sha }}，详情 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            -d "desp=$desp"
