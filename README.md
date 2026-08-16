@@ -17,14 +17,13 @@
 
 ## ✨ 项目简介
 
-本项目是一个基于 **Playwright + TypeScript** 的抖音聊天自动化脚本。它会依次使用你配置的多个抖音账号打开聊天页，按各账号的会话名称定位聊天对象，并从 `assets/yiyan.json` 中随机挑选一言发送出去。
-
-适合放到 GitHub Actions 中定时运行，也可以在本地用 `pnpm dev` 手动执行。
+本项目是一个基于 **Playwright + TypeScript** 的抖音自动续火脚本。它会携带你配置的抖音 Cookie 打开聊天页，按配置的会话名称依次定位聊天对象，并从 `assets/yiyan.json` 中随机挑选一言发送出去。支持 Github Actions 运行和本地运行两种方式。
 
 ## 🚀 功能特性
 
-- 🎭 **多账号 Cookie 登录** - 通过 `DOUYIN_ACCOUNTS` 配置多个抖音登录态，每个账号使用独立浏览器上下文
-- 🎯 **账号独立会话** - 每个账号分别配置聊天对象，单个账号失败不会阻止其他账号继续执行
+- 🎭 **Cookie 登录** - 通过 `DOUYIN_COOKIE` 注入抖音登录态，无需在脚本中输入账号密码
+- 🎯 **多会话发送** - 通过 `DOUYIN_TARGET_NAMES` 配置多个聊天对象
+- 👥 **多账号续火** - 可通过 `DOUYIN_ACCOUNTS` 为多个账号分别配置 Cookie、聊天对象和消息模板
 - 💬 **随机一言** - 每次从 `assets/yiyan.json` 随机挑选一条 `hitokoto`，默认以 `——「出处」` 的格式附上来源
 - 🤖 **定时续火** - 通过 Github Action 每天 0 点自动续火（但是 Github 定时任务要排队，可能会延迟几个小时）
 
@@ -64,7 +63,7 @@
 ]
 ```
 
-后面配置 `DOUYIN_ACCOUNTS` 时，把每个账号导出的完整 Cookie 数组放入对应账号的 `cookie` 字段。
+后面配置 `DOUYIN_COOKIE` 时，需要把整个 JSON 数组作为 Secret 填进去。
 
 ## 运行方式
 ### ⚙️ GitHub Actions
@@ -97,72 +96,16 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 
 | Secret | 必填 | 说明 |
 |:---|:---:|:---|
-| `DOUYIN_ACCOUNTS` | ✅ | 抖音账号 JSON 数组，每个账号包含 `name`、`cookie`、`targetNames`、`messageTemplate` |
-| `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送正文 |
+| `DOUYIN_COOKIE` | ✅ | Cookie-Editor 导出的完整 Cookie JSON 数组 |
+| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的好友名称 JSON 数组，例如 `["暮邵落白"]`，建议填写抖音备注名 |
+| `DOUYIN_ACCOUNTS` | ❌ | 多账号配置，配置后会无视单账号配置，详情见下方「👥 多账号配置」 |
+| `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
 | `MAIL_ADDRESS` | ❌ | 任务失败提醒的收件邮箱，同时作为邮件发件人地址 |
 | `MAIL_USERNAME` | ❌ | QQ 邮箱 SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
 | `MAIL_PASSWORD` | ❌ | QQ 邮箱 SMTP 授权码 |
 
 配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会向 `MAIL_ADDRESS` 发送提醒邮件，并附带失败图片。
-
-`DOUYIN_ACCOUNTS` 可以直接粘贴下面这种多行 JSON。每个账号的 `cookie` 都要替换成 Cookie-Editor 导出的完整数组，不能只替换示例中的一个 Cookie。
-
-```json
-[
-  {
-    "name": "账号1",
-    "cookie": [
-      {
-        "domain": ".douyin.com",
-        "expirationDate": 1800175766.87008,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "UIFID",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "账号1的真实 Cookie 值"
-      }
-    ],
-    "targetNames": ["好友A", "好友B"],
-    "messageTemplate": "{{friend}}，今天也来续火啦\\n{{yiyan}}\\n——「{{from}}」"
-  },
-  {
-    "name": "账号2",
-    "cookie": [
-      {
-        "domain": ".douyin.com",
-        "expirationDate": 1800175766.87008,
-        "hostOnly": false,
-        "httpOnly": false,
-        "name": "UIFID",
-        "path": "/",
-        "sameSite": "no_restriction",
-        "secure": true,
-        "session": false,
-        "storeId": null,
-        "value": "账号2的真实 Cookie 值"
-      }
-    ],
-    "targetNames": ["好友C"],
-    "messageTemplate": "{{friend}}，{{account}} 今天来续火啦\\n{{date}} {{weekday}}"
-  }
-]
-```
-
-账号级 `messageTemplate` 未配置时，会使用全局 `SPARK_MESSAGE_TEMPLATE`；全局模板也未配置时使用默认一言格式。
-
-每个账号对象支持的字段：
-
-| 字段 | 必填 | 说明 |
-|:---|:---:|:---|
-| `name` | ✅ | 账号标识，用于日志、错误提示、失败截图和 `{{account}}` 占位符；不同账号不能重名 |
-| `cookie` | ✅ | Cookie-Editor 为这个账号导出的完整 JSON 数组 |
-| `targetNames` | ✅ | 这个账号需要发送消息的好友名称数组，建议使用抖音备注名 |
-| `messageTemplate` | ❌ | 账号独立模板；JSON 字符串中的换行写成 `\n`，未配置时继承全局模板 |
 
 #### 3️⃣ 手动运行一次
 
@@ -200,17 +143,29 @@ cp .env.example .env
 
 | 变量 | 必填 | 默认值 | 说明 |
 |:---|:---:|:---:|:---|
-| `DOUYIN_ACCOUNTS` | ✅ | - | 抖音账号 JSON 数组，结构与上方 GitHub Secret 相同 |
-| `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送正文 |
+| `DOUYIN_COOKIE` | ✅ | - | Cookie-Editor 导出的完整 Cookie JSON 数组 |
+| `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的好友名称 JSON 数组 |
+| `DOUYIN_ACCOUNTS` | ❌ | - | 多账号配置，配置后会无视单账号配置，详情见下方「👥 多账号配置」 |
+| `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | - | 自定义火花消息模板，见下方「自定义消息模板」 |
 | `PLAYWRIGHT_BROWSER_PATH` | ❌ | - | 本机 Chrome / Chromium / Edge 可执行文件路径，不填则使用 Playwright 默认浏览器 |
 | `PLAYWRIGHT_HEADLESS` | ❌ | `true` | 是否使用无头模式 |
 | `AUTO_CLOSE` | ❌ | `true` | 发送完成后是否自动关闭浏览器 |
 
-本地 `.env` 示例：
+#### 3️⃣ 启动项目
 
-```dotenv
-DOUYIN_ACCOUNTS='[
+```bash
+pnpm dev
+```
+
+脚本会打开 `https://www.douyin.com/chat`，依次定位配置中的好友并发送随机一言。
+
+## 👥 多账号配置
+
+需要为多个抖音账号续火时，将下面的 JSON 保存为 GitHub Secret 或本地环境变量 `DOUYIN_ACCOUNTS`。每个账号的 `cookie` 都要替换成 Cookie-Editor 导出的完整数组。
+
+```json
+[
   {
     "name": "账号1",
     "cookie": [
@@ -225,30 +180,44 @@ DOUYIN_ACCOUNTS='[
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "替换成真实 Cookie 值"
+        "value": "账号1的真实 Cookie 值"
       }
     ],
-    "targetNames": ["好友A", "好友B"],
-    "messageTemplate": "{{friend}}，今天也来续火啦\\n{{yiyan}}"
+    "targetNames": ["好友A", "好友B"]
+  },
+  {
+    "name": "账号2",
+    "cookie": [
+      {
+        "domain": ".douyin.com",
+        "expirationDate": 1800175766.87008,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "UIFID",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "账号2的真实 Cookie 值"
+      }
+    ],
+    "targetNames": ["好友C"],
+    "messageTemplate": "{{friend}}，{{account}} 今天来续火啦\\n{{date}} {{weekday}}"
   }
-]'
+]
 ```
 
-> 💡 **建议填备注名而不是昵称**
->
-> 脚本靠聊天页搜索框定位好友，好友一旦改昵称就会搜不到，火花随之中断。
-> 在抖音中给好友设置备注后，搜索框同样能按备注名搜到人，而备注是你自己设置的，
-> 好友再怎么改昵称都不受影响。设置方式：好友主页 → 右上角 `...` → 设置备注。
+每个账号对象支持的字段：
 
-旧版 `DOUYIN_COOKIE` 和 `DOUYIN_TARGET_NAMES` 仍然兼容。配置 `DOUYIN_ACCOUNTS` 后，新配置优先，旧变量会被忽略。
+| 字段 | 必填 | 说明 |
+|:---|:---:|:---|
+| `name` | ✅ | 账号标识，用于日志、错误提示、失败截图和 `{{account}}` 占位符；不同账号不能重名 |
+| `cookie` | ✅ | Cookie-Editor 为这个账号导出的完整 JSON 数组 |
+| `targetNames` | ✅ | 这个账号需要发送消息的好友名称数组，建议使用抖音备注名 |
+| `messageTemplate` | ❌ | 账号独立模板；JSON 字符串中的换行写成 `\n`，未配置时继承全局模板 |
 
-#### 3️⃣ 启动项目
-
-```bash
-pnpm dev
-```
-
-脚本会为每个账号创建独立浏览器上下文，依次打开 `https://www.douyin.com/chat`、发送消息并关闭上下文。某个账号失败后会保存账号专属截图并继续执行其余账号，全部执行结束后统一报告失败。
+配置 `DOUYIN_ACCOUNTS` 后会优先使用多账号配置。脚本会依次运行各账号，单个账号失败后继续执行其余账号，最后统一报告失败。
 
 ## ✉️ 自定义消息模板
 
