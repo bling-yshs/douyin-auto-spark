@@ -92,6 +92,13 @@ async function main(): Promise<void> {
 
 /**
  * 使用独立浏览器上下文执行一个抖音账号，避免不同账号的 Cookie 相互污染。
+ *
+ * @param browser Playwright 浏览器实例。
+ * @param account 当前执行的抖音账号配置。
+ * @param yiyans 可供消息模板使用的一言列表。
+ * @param includeYiyanSource 默认消息是否包含一言出处。
+ * @param autoClose 执行结束后是否自动关闭浏览器上下文。
+ * @returns 账号执行完成后的 Promise。
  */
 async function runDouyinAccount(
   browser: Browser,
@@ -124,6 +131,8 @@ async function runDouyinAccount(
       throw new Error('聊天页搜索框未出现，Cookie 可能已经失效')
     }
 
+    await page.waitForTimeout(1000)
+
     // 记录未命中的会话，等其余好友都发完再统一报错，避免一个人改名连累当天所有人。
     const missingNames: string[] = []
     const needsYiyan =
@@ -134,7 +143,6 @@ async function runDouyinAccount(
       console.log(`[${account.name}] 开始搜索会话：${targetName}`)
       await searchInput.fill('')
       await searchInput.fill(targetName)
-      await page.waitForTimeout(1000)
 
       const searchResult = page
         .locator('.SearchPanelitembox')
@@ -143,7 +151,13 @@ async function runDouyinAccount(
         })
         .first()
 
-      if (!(await searchResult.isVisible({ timeout: 5000 }).catch(() => false))) {
+      const searchResultVisible = await searchResult
+        .waitFor({ state: 'visible', timeout: 5000 })
+        .then(() => true)
+        .catch(() => false)
+
+      if (!searchResultVisible) {
+        await captureFailureScreenshot(page, `${account.name}-${targetName}-search`)
         console.log(`[${account.name}] 找不到搜索结果，已跳过：${targetName}`)
         missingNames.push(targetName)
         continue
