@@ -11,20 +11,20 @@
 
 <div align="center">
   <a href="https://github.com/bling-yshs/douyin-auto-spark/stargazers"><img src="https://img.shields.io/github/stars/bling-yshs/douyin-auto-spark?logo=github&color=yellow" alt="Stars"></a>
+  <a href="https://github.com/bling-yshs/douyin-auto-spark/actions/workflows/renew-fire.yml"><img src="https://img.shields.io/github/actions/workflow/status/bling-yshs/douyin-auto-spark/renew-fire.yml?branch=main&label=%E7%BB%AD%E7%81%AB&logo=githubactions" alt="Spark Status"></a>
   <a href="https://github.com/bling-yshs/douyin-auto-spark/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-orange" alt="License"></a>
 </div>
 <br>
 
 ## ✨ 项目简介
 
-本项目是一个基于 **Playwright + TypeScript** 的抖音聊天自动化脚本。它会携带你配置的抖音 Cookie 打开聊天页，按配置的会话名称依次定位聊天对象，并从 `assets/yiyan.json` 中随机挑选一言发送出去。
-
-适合放到 GitHub Actions 中定时运行，也可以在本地用 `pnpm dev` 手动执行。
+本项目是一个基于 **Playwright + TypeScript** 的抖音自动续火脚本。它会携带你配置的抖音 Cookie 打开聊天页，按配置的会话名称依次定位聊天对象，并从 `assets/yiyan.json` 中随机挑选一言发送出去。支持 Github Actions 运行和本地运行两种方式。
 
 ## 🚀 功能特性
 
-- 🎭 **Cookie 登录** - 通过 `DOUYIN_COOKIE` 注入抖音登录态，无需脚本内输入账号密码
+- 🎭 **Cookie 登录** - 通过 `DOUYIN_COOKIE` 注入抖音登录态，无需在脚本中输入账号密码
 - 🎯 **多会话发送** - 通过 `DOUYIN_TARGET_NAMES` 配置多个聊天对象
+- 👥 **多账号续火** - 可通过 `DOUYIN_ACCOUNTS` 为多个账号分别配置 Cookie、聊天对象和消息模板
 - 💬 **随机一言** - 每次从 `assets/yiyan.json` 随机挑选一条 `hitokoto`，默认以 `——「出处」` 的格式附上来源
 - 🤖 **定时续火** - 通过 Github Action 每天 0 点自动续火（但是 Github 定时任务要排队，可能会延迟几个小时）
 
@@ -64,7 +64,7 @@
 ]
 ```
 
-后面配置 `DOUYIN_COOKIE` 时，需要把整个 JSON 数组作为一行字符串填进去。
+后面配置 `DOUYIN_COOKIE` 时，需要把整个 JSON 数组作为 Secret 填进去。
 
 ## 运行方式
 ### ⚙️ GitHub Actions
@@ -97,9 +97,10 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 
 | Secret | 必填 | 说明 |
 |:---|:---:|:---|
-| `DOUYIN_COOKIE` | ✅ | 抖音 Cookie JSON 字符串数组 （上面用浏览器插件获取的那个） |
-| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的朋友的用户名称， JSON 字符串数组，例如 ["暮邵落白"] （不会写 JSON 可以问 AI）。建议在抖音中给好友设置备注名并填备注名，好友改昵称也不会中断续火 |
-| `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送正文 |
+| `DOUYIN_COOKIE` | ✅ | Cookie-Editor 导出的完整 Cookie JSON 数组 |
+| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的好友名称 JSON 数组，例如 `["暮邵落白"]`，建议填写抖音备注名 |
+| `DOUYIN_ACCOUNTS` | ❌ | 多账号配置，配置后会无视单账号配置，详情见下方「👥 多账号配置」 |
+| `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
 | `MAIL_ADDRESS` | ❌ | 任务失败提醒的收件邮箱，同时作为邮件发件人地址 |
 | `MAIL_USERNAME` | ❌ | QQ 邮箱 SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
@@ -143,31 +144,14 @@ cp .env.example .env
 
 | 变量 | 必填 | 默认值 | 说明 |
 |:---|:---:|:---:|:---|
-| `DOUYIN_COOKIE` | ✅ | - | 抖音 Cookie JSON 字符串数组 |
-| `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的会话名称 JSON 字符串数组 |
-| `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送正文 |
+| `DOUYIN_COOKIE` | ✅ | - | Cookie-Editor 导出的完整 Cookie JSON 数组 |
+| `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的好友名称 JSON 数组 |
+| `DOUYIN_ACCOUNTS` | ❌ | - | 多账号配置，配置后会无视单账号配置，详情见下方「👥 多账号配置」 |
+| `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | - | 自定义火花消息模板，见下方「自定义消息模板」 |
 | `PLAYWRIGHT_BROWSER_PATH` | ❌ | - | 本机 Chrome / Chromium / Edge 可执行文件路径，不填则使用 Playwright 默认浏览器 |
 | `PLAYWRIGHT_HEADLESS` | ❌ | `true` | 是否使用无头模式 |
 | `AUTO_CLOSE` | ❌ | `true` | 发送完成后是否自动关闭浏览器 |
-
-`DOUYIN_TARGET_NAMES` 示例：
-
-```dotenv
-DOUYIN_TARGET_NAMES='["暮邵落白"]'
-```
-
-> 💡 **建议填备注名而不是昵称**
->
-> 脚本靠聊天页搜索框定位好友，好友一旦改昵称就会搜不到，火花随之中断。
-> 在抖音中给好友设置备注后，搜索框同样能按备注名搜到人，而备注是你自己设置的，
-> 好友再怎么改昵称都不受影响。设置方式：好友主页 → 右上角 `...` → 设置备注。
-
-`DOUYIN_COOKIE` 使用准备工作中导出的 Cookie JSON 数组：
-
-```dotenv
-DOUYIN_COOKIE='[{"domain":".douyin.com","expirationDate":1800175766.87008,"hostOnly":false,"httpOnly":false,"name":"UIFID","path":"/","sameSite":"no_restriction","secure":true,"session":false,"storeId":null,"value":"替换成真实 Cookie 值"}]'
-```
 
 #### 3️⃣ 启动项目
 
@@ -175,11 +159,70 @@ DOUYIN_COOKIE='[{"domain":".douyin.com","expirationDate":1800175766.87008,"hostO
 pnpm dev
 ```
 
-脚本会打开 `https://www.douyin.com/chat`，等待页面加载，定位配置中的会话名称，发送随机一言，并在发送后等待约 5 秒再退出。
+脚本会打开 `https://www.douyin.com/chat`，依次定位配置中的好友并发送随机一言。
+
+## 👥 多账号配置
+
+需要为多个抖音账号续火时，将下面的 JSON 保存为 GitHub Secret 或本地环境变量 `DOUYIN_ACCOUNTS`。每个账号的 `cookie` 都要替换成 Cookie-Editor 导出的完整数组。
+
+```json
+[
+  {
+    "name": "账号1",
+    "cookie": [
+      {
+        "domain": ".douyin.com",
+        "expirationDate": 1800175766.87008,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "UIFID",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "账号1的真实 Cookie 值"
+      }
+    ],
+    "targetNames": ["好友A", "好友B"]
+  },
+  {
+    "name": "账号2",
+    "cookie": [
+      {
+        "domain": ".douyin.com",
+        "expirationDate": 1800175766.87008,
+        "hostOnly": false,
+        "httpOnly": false,
+        "name": "UIFID",
+        "path": "/",
+        "sameSite": "no_restriction",
+        "secure": true,
+        "session": false,
+        "storeId": null,
+        "value": "账号2的真实 Cookie 值"
+      }
+    ],
+    "targetNames": ["好友C"],
+    "messageTemplate": "{{friend}}，{{account}} 今天来续火啦\\n{{date}} {{weekday}}"
+  }
+]
+```
+
+每个账号对象支持的字段：
+
+| 字段 | 必填 | 说明 |
+|:---|:---:|:---|
+| `name` | ✅ | 账号标识，用于日志、错误提示、失败截图和 `{{account}}` 占位符；不同账号不能重名 |
+| `cookie` | ✅ | Cookie-Editor 为这个账号导出的完整 JSON 数组 |
+| `targetNames` | ✅ | 这个账号需要发送消息的好友名称数组，建议使用抖音备注名 |
+| `messageTemplate` | ❌ | 账号独立模板；JSON 字符串中的换行写成 `\n`，未配置时继承全局模板 |
+
+配置 `DOUYIN_ACCOUNTS` 后会优先使用多账号配置。脚本会依次运行各账号，单个账号失败后继续执行其余账号，最后统一报告失败。
 
 ## ✉️ 自定义消息模板
 
-配置 `SPARK_MESSAGE_TEMPLATE` 可自定义消息内容：
+配置 `SPARK_MESSAGE_TEMPLATE` 可定义所有账号共用的默认消息内容；账号对象中的 `messageTemplate` 可以覆盖它：
 
 ```dotenv
 SPARK_MESSAGE_TEMPLATE={{friend}}，今天的火花到账啦🔥\n{{yiyan}}\n——「{{from}}」\n{{date}} {{weekday}}
@@ -189,6 +232,7 @@ SPARK_MESSAGE_TEMPLATE={{friend}}，今天的火花到账啦🔥\n{{yiyan}}\n—
 
 | 占位符 | 说明 |
 |:---|:---|
+| `{{account}}` | 当前账号的配置名称 |
 | `{{friend}}` | 好友名 |
 | `{{yiyan}}` | 一言正文 |
 | `{{from}}` | 一言出处 |

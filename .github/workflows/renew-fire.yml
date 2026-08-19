@@ -3,7 +3,7 @@ name: 🚀 续一次火
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 23 * * *"
+    - cron: "0 0 * * *"
       timezone: "Asia/Shanghai"
 
 jobs:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     container:
       image: mcr.microsoft.com/playwright:v1.61.0-jammy
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: 克隆当前仓库 (Clone current repo)
@@ -36,6 +36,7 @@ jobs:
 
       - name: 续一次火 (Run spark job)
         env:
+          DOUYIN_ACCOUNTS: ${{ secrets.DOUYIN_ACCOUNTS }}
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
           YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
@@ -44,18 +45,25 @@ jobs:
           echo ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
           bun src/main.ts
 
-      - name: 发送构建失败通知
-        if: failure()
-        run: |
-          desp="执行时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')$'\n'IP：$(curl -4 -s https://api.ipify.org)，$'\n'$(curl -6 -s https://api64.ipify.org || echo '无 IPv6')分支 ${{ github.ref_name }}，提交 ${{ github.sha }}，详情 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          curl -sS -X POST "https://sctapi.ftqq.com/${{ secrets.FTQQ_SENDKEY }}.send" \
-            -d "title=可能未能正常续火花" \
-            -d "desp=$desp"
+      - name: 发送失败邮件 (Send failure email)
+        if: ${{ failure() }}
+        uses: dawidd6/action-send-mail@v18
+        with:
+          server_address: smtp.qq.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: 抖音续火任务失败
+          to: ${{ secrets.MAIL_ADDRESS }}
+          from: ${{ secrets.MAIL_ADDRESS }}
+          attachments: artifacts/*.png
+          body: |
+            抖音续火任务执行失败
+            仓库：${{ github.repository }}
+            运行链接：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            如确认配置无误后仍然失败，请在上游仓库发送 issue：
+            https://github.com/bling-yshs/douyin-auto-spark/issues
 
-      - name: 发送构建成功通知
-        if: success()
-        run: |
-          desp="执行时间：$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S')$'\n'IP：$(curl -4 -s https://api.ipify.org)，$'\n'$(curl -6 -s https://api64.ipify.org || echo '无 IPv6')分支 ${{ github.ref_name }}，提交 ${{ github.sha }}，详情 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          curl -sS -X POST "https://sctapi.ftqq.com/${{ secrets.FTQQ_SENDKEY }}.send" \
-            -d "title=已完成今日自动续火花任务" \
-            -d "desp=$desp"
+#      - name: Setup tmate session
+#        uses: mxschmitt/action-tmate@v3
