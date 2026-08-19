@@ -65,5 +65,89 @@ jobs:
             如确认配置无误后仍然失败，请在上游仓库发送 issue：
             https://github.com/bling-yshs/douyin-auto-spark/issues
 
+      - name: 发送构建失败通知
+        if: ${{ failure() && env.FTQQ_SENDKEY != '' }}
+        env:
+          FTQQ_SENDKEY: ${{ secrets.FTQQ_SENDKEY }}
+          TZ: Asia/Shanghai
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          import time
+          import urllib.parse
+          import urllib.request
+
+          def fetch(url):
+              try:
+                  with urllib.request.urlopen(url, timeout=10) as resp:
+                      return resp.read().decode().strip()
+              except Exception:
+                  return None
+
+          ipv4 = fetch("https://api.ipify.org") or "未知"
+          ipv6 = fetch("https://api64.ipify.org") or "无 IPv6"
+
+          desp = "\n\n".join([
+              f"执行时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}",
+              f"IPv4：{ipv4}",
+              f"IPv6：{ipv6}",
+              f"分支：{os.environ['REF_NAME']}",
+              f"提交：{os.environ['COMMIT_SHA']}",
+              f"详情：{os.environ['RUN_URL']}",
+          ])
+
+          data = urllib.parse.urlencode({"title": "可能未能正常续火花", "desp": desp}).encode()
+          req = urllib.request.Request(
+              f"https://sctapi.ftqq.com/{os.environ['FTQQ_SENDKEY']}.send", data=data
+          )
+          with urllib.request.urlopen(req, timeout=15) as resp:
+              print(resp.read().decode())
+          PYEOF
+
+      - name: 发送构建成功通知
+        if: ${{ success() && env.FTQQ_SENDKEY != '' }}
+        env:
+          FTQQ_SENDKEY: ${{ secrets.FTQQ_SENDKEY }}
+          TZ: Asia/Shanghai
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          import time
+          import urllib.parse
+          import urllib.request
+
+          def fetch(url):
+              try:
+                  with urllib.request.urlopen(url, timeout=10) as resp:
+                      return resp.read().decode().strip()
+              except Exception:
+                  return None
+
+          ipv4 = fetch("https://api.ipify.org") or "未知"
+          ipv6 = fetch("https://api64.ipify.org") or "无 IPv6"
+
+          desp = "\n\n".join([
+              f"执行时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}",
+              f"IPv4：{ipv4}",
+              f"IPv6：{ipv6}",
+              f"分支：{os.environ['REF_NAME']}",
+              f"提交：{os.environ['COMMIT_SHA']}",
+              f"详情：{os.environ['RUN_URL']}",
+          ])
+
+          data = urllib.parse.urlencode({"title": "已完成今日自动续火花任务", "desp": desp}).encode()
+          req = urllib.request.Request(
+              f"https://sctapi.ftqq.com/{os.environ['FTQQ_SENDKEY']}.send", data=data
+          )
+          with urllib.request.urlopen(req, timeout=15) as resp:
+              print(resp.read().decode())
+          PYEOF
+
 #      - name: Setup tmate session
 #        uses: mxschmitt/action-tmate@v3
