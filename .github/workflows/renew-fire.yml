@@ -40,7 +40,7 @@ jobs:
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
           YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
-          SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}\n+ IP：${{ steps.ip.outputs.value }}
+          SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
         run: | 
           echo ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
           bun src/main.ts
