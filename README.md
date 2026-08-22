@@ -5,7 +5,7 @@
 </p>
 
 <div align="center">
-  <img src="assets/readme/logo.png" alt="Douyin Auto Spark Logo" width="120">
+  <img src="assets/readme/banner.png" alt="Douyin Auto Spark Logo">
 </div>
 <br>
 
