@@ -49,18 +49,18 @@ jobs:
             );
             const isRetry = previousRunsToday.length > 0;
             const forceFailure = previousRunsToday.length === 0;
-            const shouldRun = context.eventName !== 'schedule' || !hasSuccessfulRun;
+            const shouldRun = !hasSuccessfulRun;
 
             core.setOutput('should_run', shouldRun ? 'true' : 'false');
             core.setOutput('is_retry', isRetry ? 'true' : 'false');
             core.setOutput('force_failure', forceFailure ? 'true' : 'false');
             core.info(
-              `Beijing date ${beijingDate}, branch ${branch}: previous runs=${previousRunsToday.length}, successful=${hasSuccessfulRun}, retry=${isRetry}, forceFailure=${forceFailure}, shouldRun=${shouldRun}`,
+              `event=${context.eventName}, Beijing date ${beijingDate}, branch ${branch}: previous runs=${previousRunsToday.length}, successful=${hasSuccessfulRun}, retry=${isRetry}, forceFailure=${forceFailure}, shouldRun=${shouldRun}`,
             );
 
   run:
     needs: check
-    if: ${{ always() && (github.event_name != 'schedule' || needs.check.outputs.should_run == 'true') }}
+    if: ${{ always() && needs.check.outputs.should_run == 'true' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 5
 
