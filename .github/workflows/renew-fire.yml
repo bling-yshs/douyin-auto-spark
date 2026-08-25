@@ -12,11 +12,11 @@ permissions:
 
 jobs:
   check:
-    if: ${{ github.event_name == 'schedule' }}
     runs-on: ubuntu-22.04
     outputs:
       should_run: ${{ steps.daily-check.outputs.should_run }}
       is_retry: ${{ steps.daily-check.outputs.is_retry }}
+      force_failure: ${{ steps.daily-check.outputs.force_failure }}
 
     steps:
       - name: 检查当天是否已有成功运行 (Check today's successful run)
@@ -30,10 +30,12 @@ jobs:
             const dayStart = new Date(`${beijingDate}T00:00:00+08:00`);
             const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
+            const branch = context.ref.replace('refs/heads/', '');
             const { data } = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'renew-fire.yml',
+              branch,
               per_page: 100,
             });
 
@@ -45,45 +47,33 @@ jobs:
             const hasSuccessfulRun = previousRunsToday.some(
               (run) => run.conclusion === 'success',
             );
-            const isRetry = !hasSuccessfulRun && previousRunsToday.length > 0;
+            const isRetry = previousRunsToday.length > 0;
+            const forceFailure = previousRunsToday.length === 0;
+            const shouldRun = context.eventName !== 'schedule' || !hasSuccessfulRun;
 
-            core.setOutput('should_run', hasSuccessfulRun ? 'false' : 'true');
+            core.setOutput('should_run', shouldRun ? 'true' : 'false');
             core.setOutput('is_retry', isRetry ? 'true' : 'false');
+            core.setOutput('force_failure', forceFailure ? 'true' : 'false');
             core.info(
-              `Beijing date ${beijingDate}: previous runs=${previousRunsToday.length}, successful=${hasSuccessfulRun}, retry=${isRetry}`,
+              `Beijing date ${beijingDate}, branch ${branch}: previous runs=${previousRunsToday.length}, successful=${hasSuccessfulRun}, retry=${isRetry}, forceFailure=${forceFailure}, shouldRun=${shouldRun}`,
             );
 
   run:
     needs: check
     if: ${{ always() && (github.event_name != 'schedule' || needs.check.outputs.should_run == 'true') }}
     runs-on: ubuntu-22.04
-    container:
-      image: mcr.microsoft.com/playwright:v1.61.0-jammy
-    timeout-minutes: 30
+    timeout-minutes: 5
 
     steps:
-      - name: 克隆当前仓库 (Clone current repo)
-        uses: actions/checkout@v7
-
-      - name: 安装 unzip (Install unzip)
-        run: apt-get update && apt-get install -y unzip
-
-      - name: 安装 Bun (Set up Bun)
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: 安装运行时依赖 (Install dependencies)
-        run: bun install --production --ignore-scripts
-
-      - name: 续一次火 (Run spark job)
+      - name: 模拟续火结果 (Simulate spark result)
         env:
-          DOUYIN_ACCOUNTS: ${{ secrets.DOUYIN_ACCOUNTS }}
-          DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
-          DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
-          YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
-          SPARK_MESSAGE_TEMPLATE: ${{ secrets.SPARK_MESSAGE_TEMPLATE }}
-        run: bun src/main.ts
+          FORCE_FAILURE: ${{ needs.check.outputs.force_failure }}
+        run: |
+          if [ "$FORCE_FAILURE" = "true" ]; then
+            echo "测试模式：北京时间当天第一次运行，固定失败"
+            exit 1
+          fi
+          echo "测试模式：北京时间当天第二次及以后运行，固定成功"
 
       - name: 检查邮件配置 (Check mail configuration)
         id: mail-config
@@ -100,7 +90,7 @@ jobs:
           fi
 
       - name: 发送补充执行成功邮件 (Send retry success email)
-        if: ${{ success() && github.event_name == 'schedule' && needs.check.outputs.is_retry == 'true' && steps.mail-config.outputs.enabled == 'true' }}
+        if: ${{ success() && needs.check.outputs.is_retry == 'true' && steps.mail-config.outputs.enabled == 'true' }}
         uses: dawidd6/action-send-mail@v18
         with:
           server_address: ${{ secrets.MAIL_HOST || 'smtp.qq.com' }}
@@ -117,7 +107,7 @@ jobs:
             运行链接：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: 发送失败邮件 (Send failure email)
-        if: ${{ failure() && steps.mail-config.outputs.enabled == 'true' && (github.event_name != 'schedule' || needs.check.outputs.is_retry != 'true') }}
+        if: ${{ failure() && steps.mail-config.outputs.enabled == 'true' && needs.check.outputs.is_retry != 'true' }}
         uses: dawidd6/action-send-mail@v18
         with:
           server_address: ${{ secrets.MAIL_HOST || 'smtp.qq.com' }}
@@ -128,7 +118,6 @@ jobs:
           subject: 抖音续火任务失败
           to: ${{ secrets.MAIL_TO || secrets.MAIL_ADDRESS }}
           from: ${{ secrets.MAIL_ADDRESS }}
-          attachments: artifacts/*.png
           body: |
             抖音续火任务执行失败
             仓库：${{ github.repository }}
