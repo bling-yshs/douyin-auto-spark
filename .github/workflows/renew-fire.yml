@@ -3,11 +3,59 @@ name: 🚀 续一次火
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0,2,4 * * *"
       timezone: "Asia/Shanghai"
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
+  check:
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-22.04
+    outputs:
+      should_run: ${{ steps.daily-check.outputs.should_run }}
+      is_retry: ${{ steps.daily-check.outputs.is_retry }}
+
+    steps:
+      - name: 检查当天是否已有成功运行 (Check today's successful run)
+        id: daily-check
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const now = new Date();
+            const beijingNow = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+            const beijingDate = beijingNow.toISOString().slice(0, 10);
+            const dayStart = new Date(`${beijingDate}T00:00:00+08:00`);
+            const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'renew-fire.yml',
+              per_page: 100,
+            });
+
+            const previousRunsToday = data.workflow_runs.filter((run) => {
+              if (run.id === Number(context.runId)) return false;
+              const createdAt = new Date(run.created_at);
+              return createdAt >= dayStart && createdAt < dayEnd;
+            });
+            const hasSuccessfulRun = previousRunsToday.some(
+              (run) => run.conclusion === 'success',
+            );
+            const isRetry = !hasSuccessfulRun && previousRunsToday.length > 0;
+
+            core.setOutput('should_run', hasSuccessfulRun ? 'false' : 'true');
+            core.setOutput('is_retry', isRetry ? 'true' : 'false');
+            core.info(
+              `Beijing date ${beijingDate}: previous runs=${previousRunsToday.length}, successful=${hasSuccessfulRun}, retry=${isRetry}`,
+            );
+
   run:
+    needs: check
+    if: ${{ always() && (github.event_name != 'schedule' || needs.check.outputs.should_run == 'true') }}
     runs-on: ubuntu-22.04
     container:
       image: mcr.microsoft.com/playwright:v1.61.0-jammy
@@ -51,8 +99,25 @@ jobs:
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: 发送补充执行成功邮件 (Send retry success email)
+        if: ${{ success() && github.event_name == 'schedule' && needs.check.outputs.is_retry == 'true' && steps.mail-config.outputs.enabled == 'true' }}
+        uses: dawidd6/action-send-mail@v18
+        with:
+          server_address: ${{ secrets.MAIL_HOST || 'smtp.qq.com' }}
+          server_port: ${{ secrets.MAIL_PORT || '465' }}
+          secure: ${{ secrets.MAIL_SECURE || 'true' }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: 今天有续火失败了，但是已经补充执行成功啦！
+          to: ${{ secrets.MAIL_TO || secrets.MAIL_ADDRESS }}
+          from: ${{ secrets.MAIL_ADDRESS }}
+          body: |
+            今天有续火失败了，但是已经补充执行成功啦！
+            仓库：${{ github.repository }}
+            运行链接：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
       - name: 发送失败邮件 (Send failure email)
-        if: ${{ failure() && steps.mail-config.outputs.enabled == 'true' }}
+        if: ${{ failure() && steps.mail-config.outputs.enabled == 'true' && (github.event_name != 'schedule' || needs.check.outputs.is_retry != 'true') }}
         uses: dawidd6/action-send-mail@v18
         with:
           server_address: ${{ secrets.MAIL_HOST || 'smtp.qq.com' }}
