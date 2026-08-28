@@ -24,7 +24,7 @@
 
 - 🎭 **Cookie 登录** - 通过 `DOUYIN_COOKIE` 注入抖音登录态，无需在脚本中输入账号密码
 - 🎯 **多会话发送** - 通过 `DOUYIN_TARGET_NAMES` 配置多个聊天对象
-- 👥 **多账号续火** - 可通过 `DOUYIN_ACCOUNTS` 为多个账号分别配置 Cookie、聊天对象和消息模板
+- 👥 **多账号续火** - 支持同时为多个账号配置续火
 - 💬 **随机一言** - 每次从 `assets/yiyan.json` 随机挑选一条 `hitokoto`，默认以 `——「出处」` 的格式附上来源
 - 🤖 **定时续火** - 通过 Github Action 每天 0 点自动续火（但是 Github 定时任务要排队，可能会延迟几个小时）
 
@@ -99,18 +99,8 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 |:---|:---:|:---|
 | `DOUYIN_COOKIE` | ✅ | Cookie-Editor 导出的完整 Cookie JSON 数组 |
 | `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的好友名称 JSON 数组，例如 `["暮邵落白"]`，建议填写抖音备注名 |
-| `DOUYIN_ACCOUNTS` | ❌ | 多账号配置，配置后会无视单账号配置，详情见下方「👥 多账号配置」 |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
-| `MAIL_ADDRESS` | ❌ | SMTP 发件邮箱地址 |
-| `MAIL_TO` | ❌ | 任务失败提醒的收件邮箱，不配置时使用 `MAIL_ADDRESS` |
-| `MAIL_USERNAME` | ❌ | SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
-| `MAIL_PASSWORD` | ❌ | SMTP 授权码或密码；QQ 邮箱请填写授权码 |
-| `MAIL_HOST` | ❌ | SMTP 服务器地址，默认 `smtp.qq.com` |
-| `MAIL_PORT` | ❌ | SMTP 服务器端口，默认 `465` |
-| `MAIL_SECURE` | ❌ | 是否使用 SSL，默认 `true` |
-
-配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会发送提醒邮件，并附带失败图片。可通过 `MAIL_TO` 指定收件地址；未配置时邮件发送到 `MAIL_ADDRESS`。使用非 QQ 邮箱时，请同时按服务商要求配置 `MAIL_HOST`、`MAIL_PORT` 和 `MAIL_SECURE`。
 
 #### 3️⃣ 手动运行一次
 
@@ -150,7 +140,6 @@ cp .env.example .env
 |:---|:---:|:---:|:---|
 | `DOUYIN_COOKIE` | ✅ | - | Cookie-Editor 导出的完整 Cookie JSON 数组 |
 | `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的好友名称 JSON 数组 |
-| `DOUYIN_ACCOUNTS` | ❌ | - | 多账号配置，配置后会无视单账号配置，详情见下方「👥 多账号配置」 |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | - | 自定义火花消息模板，见下方「自定义消息模板」 |
 | `PLAYWRIGHT_BROWSER_PATH` | ❌ | - | 本机 Chrome / Chromium / Edge 可执行文件路径，不填则使用 Playwright 默认浏览器 |
@@ -167,7 +156,11 @@ pnpm dev
 
 ## 👥 多账号配置
 
-需要为多个抖音账号续火时，将下面的 JSON 保存为 GitHub Secret 或本地环境变量 `DOUYIN_ACCOUNTS`。每个账号的 `cookie` 都要替换成 Cookie-Editor 导出的完整数组。
+单账号用户继续只配置 `DOUYIN_COOKIE` 和 `DOUYIN_TARGET_NAMES` 即可，不需要关注本节。
+
+需要为多个抖音账号续火时，需要配置如 `DOUYIN_ACCOUNTS_1` 、 `DOUYIN_ACCOUNTS_2`、`DOUYIN_ACCOUNTS_3` 这些 secret（一直到10）
+
+例如先添加 `DOUYIN_ACCOUNTS_1` ：
 
 ```json
 [
@@ -213,16 +206,40 @@ pnpm dev
 ]
 ```
 
+如果后续账号太多（github 大概一个 secret 只能写两三万字，cookie 太长了很容易存不进去），就把新增账号放进下一个 Secret：
+
+```text
+DOUYIN_ACCOUNTS_1   第一批账号
+DOUYIN_ACCOUNTS_2   第二批账号
+DOUYIN_ACCOUNTS_3   第三批账号
+```
+
 每个账号对象支持的字段：
 
 | 字段 | 必填 | 说明 |
 |:---|:---:|:---|
-| `name` | ✅ | 账号标识，用于日志、错误提示、失败截图和 `{{account}}` 占位符；不同账号不能重名 |
+| `name` | ✅ | 当前账号的标识符，账号名称不能重复 |
 | `cookie` | ✅ | Cookie-Editor 为这个账号导出的完整 JSON 数组 |
 | `targetNames` | ✅ | 这个账号需要发送消息的好友名称数组，建议使用抖音备注名 |
-| `messageTemplate` | ❌ | 账号独立模板；JSON 字符串中的换行写成 `\n`，未配置时继承全局模板 |
+| `messageTemplate` | ❌ | 消息模板，未配置时继承全局模板 |
 
-配置 `DOUYIN_ACCOUNTS` 后会优先使用多账号配置。脚本会依次运行各账号，单个账号失败后继续执行其余账号，最后统一报告失败。
+如果配置了多账号，则会忽略单账号配置
+
+## 📮 邮件通知配置
+
+邮件通知是可选功能。配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会发送提醒邮件并附带失败截图；如果定时任务前一次失败、后续补充执行成功，也会发送补充执行成功邮件。
+
+| Secret | 启用邮件时必填 | 说明 |
+|:---|:---:|:---|
+| `MAIL_ADDRESS` | ✅ | SMTP 发件邮箱地址 |
+| `MAIL_USERNAME` | ✅ | SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
+| `MAIL_PASSWORD` | ✅ | SMTP 授权码或密码；QQ 邮箱请填写授权码 |
+| `MAIL_TO` | ❌ | 收件邮箱，不配置时使用 `MAIL_ADDRESS` |
+| `MAIL_HOST` | ❌ | SMTP 服务器地址，默认 `smtp.qq.com` |
+| `MAIL_PORT` | ❌ | SMTP 服务器端口，默认 `465` |
+| `MAIL_SECURE` | ❌ | 是否使用 SSL，默认 `true` |
+
+如果不需要邮件提醒，不配置这些 Secret 即可。
 
 ## ✉️ 自定义消息模板
 

@@ -78,7 +78,18 @@ jobs:
 
       - name: 续一次火 (Run spark job)
         env:
+          # DOUYIN_ACCOUNTS 仅用于兼容历史配置；新多账号配置请使用编号分片。
           DOUYIN_ACCOUNTS: ${{ secrets.DOUYIN_ACCOUNTS }}
+          DOUYIN_ACCOUNTS_1: ${{ secrets.DOUYIN_ACCOUNTS_1 }}
+          DOUYIN_ACCOUNTS_2: ${{ secrets.DOUYIN_ACCOUNTS_2 }}
+          DOUYIN_ACCOUNTS_3: ${{ secrets.DOUYIN_ACCOUNTS_3 }}
+          DOUYIN_ACCOUNTS_4: ${{ secrets.DOUYIN_ACCOUNTS_4 }}
+          DOUYIN_ACCOUNTS_5: ${{ secrets.DOUYIN_ACCOUNTS_5 }}
+          DOUYIN_ACCOUNTS_6: ${{ secrets.DOUYIN_ACCOUNTS_6 }}
+          DOUYIN_ACCOUNTS_7: ${{ secrets.DOUYIN_ACCOUNTS_7 }}
+          DOUYIN_ACCOUNTS_8: ${{ secrets.DOUYIN_ACCOUNTS_8 }}
+          DOUYIN_ACCOUNTS_9: ${{ secrets.DOUYIN_ACCOUNTS_9 }}
+          DOUYIN_ACCOUNTS_10: ${{ secrets.DOUYIN_ACCOUNTS_10 }}
           DOUYIN_COOKIE: ${{ secrets.DOUYIN_COOKIE }}
           DOUYIN_TARGET_NAMES: ${{ secrets.DOUYIN_TARGET_NAMES }}
           YIYAN_INCLUDE_SOURCE: ${{ secrets.YIYAN_INCLUDE_SOURCE }}
