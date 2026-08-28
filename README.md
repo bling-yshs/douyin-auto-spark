@@ -59,7 +59,7 @@
     "secure": true,
     "session": false,
     "storeId": null,
-    "value": "替换成真实 Cookie 值"
+    "value": "xxx"
   }
 ]
 ```
@@ -93,12 +93,12 @@ Settings -> Secrets and variables -> Actions -> New repository secret
 
 ![add-secret](assets/readme/add-secret.jpg)
 
-添加以下 secrets：
+添加以下 Secrets：
 
 | Secret | 必填 | 说明 |
 |:---|:---:|:---|
 | `DOUYIN_COOKIE` | ✅ | Cookie-Editor 导出的完整 Cookie JSON 数组 |
-| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的好友名称 JSON 数组，例如 `["暮邵落白"]`，建议填写抖音备注名 |
+| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的好友名称 JSON 数组，例如 `["暮邵落白"]`，建议填写抖音备注名。不会写 JSON 的可以问下 AI |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送一言正文 |
 | `SPARK_MESSAGE_TEMPLATE` | ❌ | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
 
@@ -154,11 +154,29 @@ pnpm dev
 
 脚本会打开 `https://www.douyin.com/chat`，依次定位配置中的好友并发送随机一言。
 
+
+## 📮 邮件通知配置
+
+邮件通知是可选功能。配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会发送提醒邮件并附带失败截图；如果定时任务前一次失败、后续补充执行成功，也会发送补充执行成功邮件。
+
+| Secret | 启用邮件时必填 | 说明 |
+|:---|:---:|:---|
+| `MAIL_ADDRESS` | ✅ | SMTP 发件邮箱地址 |
+| `MAIL_USERNAME` | ✅ | SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
+| `MAIL_PASSWORD` | ✅ | SMTP 授权码或密码；QQ 邮箱请填写授权码 |
+| `MAIL_TO` | ❌ | 收件邮箱，不配置时使用 `MAIL_ADDRESS` |
+| `MAIL_HOST` | ❌ | SMTP 服务器地址，默认 `smtp.qq.com` |
+| `MAIL_PORT` | ❌ | SMTP 服务器端口，默认 `465` |
+| `MAIL_SECURE` | ❌ | 是否使用 SSL，默认 `true` |
+
+如果不需要邮件提醒，不配置这些 Secret 即可。
+
+
 ## 👥 多账号配置
 
-单账号用户继续只配置 `DOUYIN_COOKIE` 和 `DOUYIN_TARGET_NAMES` 即可，不需要关注本节。
+如果你只有一个账号需要续火，那么不需要关注本节。
 
-需要为多个抖音账号续火时，需要配置如 `DOUYIN_ACCOUNTS_1` 、 `DOUYIN_ACCOUNTS_2`、`DOUYIN_ACCOUNTS_3` 这些 secret（一直到10）
+需要为多个抖音账号续火时，可以配置如 `DOUYIN_ACCOUNTS_1` 、 `DOUYIN_ACCOUNTS_2`、`DOUYIN_ACCOUNTS_3` 这些 Secrets（一直到_10）
 
 例如先添加 `DOUYIN_ACCOUNTS_1` ：
 
@@ -178,7 +196,7 @@ pnpm dev
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "账号1的真实 Cookie 值"
+        "value": "xxx"
       }
     ],
     "targetNames": ["好友A", "好友B"]
@@ -197,7 +215,7 @@ pnpm dev
         "secure": true,
         "session": false,
         "storeId": null,
-        "value": "账号2的真实 Cookie 值"
+        "value": "xxx"
       }
     ],
     "targetNames": ["好友C"],
@@ -206,7 +224,7 @@ pnpm dev
 ]
 ```
 
-如果后续账号太多（github 大概一个 secret 只能写两三万字，cookie 太长了很容易存不进去），就把新增账号放进下一个 Secret：
+如果后续账号太多（github 大概一个 secret 只能写两三万字，cookie 太长了很容易存不进去），就把账号放进下一个 Secret：
 
 ```text
 DOUYIN_ACCOUNTS_1   第一批账号
@@ -223,23 +241,7 @@ DOUYIN_ACCOUNTS_3   第三批账号
 | `targetNames` | ✅ | 这个账号需要发送消息的好友名称数组，建议使用抖音备注名 |
 | `messageTemplate` | ❌ | 消息模板，未配置时继承全局模板 |
 
-如果配置了多账号，则会忽略单账号配置
-
-## 📮 邮件通知配置
-
-邮件通知是可选功能。配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会发送提醒邮件并附带失败截图；如果定时任务前一次失败、后续补充执行成功，也会发送补充执行成功邮件。
-
-| Secret | 启用邮件时必填 | 说明 |
-|:---|:---:|:---|
-| `MAIL_ADDRESS` | ✅ | SMTP 发件邮箱地址 |
-| `MAIL_USERNAME` | ✅ | SMTP 登录账号，通常与 `MAIL_ADDRESS` 相同 |
-| `MAIL_PASSWORD` | ✅ | SMTP 授权码或密码；QQ 邮箱请填写授权码 |
-| `MAIL_TO` | ❌ | 收件邮箱，不配置时使用 `MAIL_ADDRESS` |
-| `MAIL_HOST` | ❌ | SMTP 服务器地址，默认 `smtp.qq.com` |
-| `MAIL_PORT` | ❌ | SMTP 服务器端口，默认 `465` |
-| `MAIL_SECURE` | ❌ | 是否使用 SSL，默认 `true` |
-
-如果不需要邮件提醒，不配置这些 Secret 即可。
+⚠️ 如果配置了多账号，则会忽略单账号配置
 
 ## ✉️ 自定义消息模板
 
