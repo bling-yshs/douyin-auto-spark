@@ -71,7 +71,7 @@ jobs:
       - name: 安装 Bun (Set up Bun)
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.14
 
       - name: 安装运行时依赖 (Install dependencies)
         run: bun install --production --ignore-scripts
