@@ -20,7 +20,7 @@ const DOUYIN_COOKIE_KEY = 'DOUYIN_COOKIE'
 const DOUYIN_TARGET_NAMES_KEY = 'DOUYIN_TARGET_NAMES'
 const YIYAN_INCLUDE_SOURCE_KEY = 'YIYAN_INCLUDE_SOURCE'
 const SPARK_MESSAGE_TEMPLATE_KEY = 'SPARK_MESSAGE_TEMPLATE'
-const FAILURE_SCREENSHOT_DIRECTORY = 'artifacts'
+const SCREENSHOT_DIRECTORY = 'artifacts'
 
 const CHAT_PAGE_READY_TIMEOUT = 30000
 const CHAT_PAGE_IDLE_TIMEOUT = 10000
@@ -151,7 +151,7 @@ async function runDouyinAccount(
       const searchResult = await searchConversation(page, searchInput, account.name, targetName)
 
       if (!searchResult) {
-        await captureFailureScreenshot(page, `${account.name}-${targetName}-search`)
+        await captureScreenshot(page, 'failure', `${account.name}-${targetName}-search`)
         console.log(`[${account.name}] 找不到搜索结果，已跳过：${targetName}`)
         missingNames.push(targetName)
         continue
@@ -198,9 +198,10 @@ async function runDouyinAccount(
       )
     }
 
+    await captureScreenshot(page, 'success', account.name)
     console.log(`账号执行完成：${account.name}`)
   } catch (error) {
-    await captureFailureScreenshot(page, account.name)
+    await captureScreenshot(page, 'failure', account.name)
     throw error
   } finally {
     if (autoClose) {
@@ -291,10 +292,11 @@ async function searchConversation(
 }
 
 /**
- * 在页面仍可访问时保存失败现场，且不让截图错误覆盖原始任务异常。
+ * 在页面仍可访问时保存执行现场，且不让截图错误覆盖原始任务异常。
  */
-async function captureFailureScreenshot(
+async function captureScreenshot(
   page: Page | undefined,
+  prefix: 'success' | 'failure',
   accountName: string,
 ): Promise<void> {
   if (!page || page.isClosed()) {
@@ -302,15 +304,15 @@ async function captureFailureScreenshot(
   }
 
   try {
-    await mkdir(FAILURE_SCREENSHOT_DIRECTORY, { recursive: true })
-    const screenshotPath = `${FAILURE_SCREENSHOT_DIRECTORY}/failure-screenshot-${toSafeFileName(accountName)}.png`
+    await mkdir(SCREENSHOT_DIRECTORY, { recursive: true })
+    const screenshotPath = `${SCREENSHOT_DIRECTORY}/${prefix}-screenshot-${toSafeFileName(accountName)}.png`
     await page.screenshot({
       path: screenshotPath,
       fullPage: true,
     })
-    console.log(`已保存失败截图：${screenshotPath}`)
+    console.log(`已保存截图：${screenshotPath}`)
   } catch (error) {
-    console.error('保存失败截图失败:', error)
+    console.error('保存截图失败:', error)
   }
 }
 

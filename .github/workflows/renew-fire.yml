@@ -149,5 +149,6 @@ jobs:
             如确认配置无误后仍然失败，请在上游仓库发送 issue：
             https://github.com/bling-yshs/douyin-auto-spark/issues
 
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
+      - name: Setup tmate session
+        if: ${{ always() }}
+        uses: mxschmitt/action-tmate@v3
