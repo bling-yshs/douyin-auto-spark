@@ -78,6 +78,8 @@ jobs:
 
       - name: 续一次火 (Run spark job)
         env:
+          # 抖音偶发字体问题兼容
+          PW_TEST_SCREENSHOT_NO_FONTS_READY: "1"
           # DOUYIN_ACCOUNTS 仅用于兼容历史配置；新多账号配置请使用编号分片。
           DOUYIN_ACCOUNTS: ${{ secrets.DOUYIN_ACCOUNTS }}
           DOUYIN_ACCOUNTS_1: ${{ secrets.DOUYIN_ACCOUNTS_1 }}
