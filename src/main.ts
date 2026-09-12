@@ -23,7 +23,7 @@ const SPARK_MESSAGE_TEMPLATE_KEY = 'SPARK_MESSAGE_TEMPLATE'
 const SCREENSHOT_DIRECTORY = 'artifacts'
 
 const BROWSER_USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0'
 
 const CHAT_PAGE_READY_TIMEOUT = 30000
 const CHAT_PAGE_IDLE_TIMEOUT = 10000
