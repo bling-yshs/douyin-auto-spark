@@ -22,6 +22,9 @@ const YIYAN_INCLUDE_SOURCE_KEY = 'YIYAN_INCLUDE_SOURCE'
 const SPARK_MESSAGE_TEMPLATE_KEY = 'SPARK_MESSAGE_TEMPLATE'
 const SCREENSHOT_DIRECTORY = 'artifacts'
 
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
+
 const CHAT_PAGE_READY_TIMEOUT = 30000
 const CHAT_PAGE_IDLE_TIMEOUT = 10000
 const SEARCH_RESULT_TIMEOUT = 5000
@@ -115,7 +118,7 @@ async function runDouyinAccount(
   includeYiyanSource: boolean,
   autoClose: boolean,
 ): Promise<void> {
-  const context = await browser.newContext()
+  const context = await browser.newContext({ userAgent: BROWSER_USER_AGENT })
   let page: Page | undefined
 
   try {
