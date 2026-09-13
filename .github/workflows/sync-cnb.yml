@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   sync:
+    if: github.repository == 'bling-yshs/douyin-auto-spark'
     runs-on: ubuntu-22.04
 
     steps:
