@@ -1,0 +1,9 @@
+main:
+  push:
+    - services:
+        - docker
+      stages:
+        - name: 构建 Docker 镜像
+          script: docker build -t ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest .
+        - name: 推送 Docker 镜像
+          script: docker push ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest

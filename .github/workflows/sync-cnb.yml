@@ -1,0 +1,29 @@
+name: 🔄 同步到 CNB
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: 克隆当前仓库 (Clone current repo)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: 同步到 CNB (Sync to CNB)
+        uses: docker://tencentcom/git-sync
+        env:
+          PLUGIN_TARGET_URL: "https://cnb.cool/bling-team/douyin-auto-spark"
+          PLUGIN_AUTH_TYPE: "https"
+          PLUGIN_USERNAME: "cnb"
+          PLUGIN_PASSWORD: ${{ secrets.CNB_SYNC_TOKEN }}
+          PLUGIN_FORCE: "true"
+
