@@ -18,7 +18,7 @@
 
 ## ✨ 项目简介
 
-本项目是一个基于 **Playwright + TypeScript** 的抖音自动续火脚本。它会携带你配置的抖音 Cookie 打开聊天页，按配置的会话名称依次定位聊天对象，并从 `assets/yiyan.json` 中随机挑选一言发送出去。支持 Github Actions 运行和本地运行两种方式。
+本项目是一个基于 **Playwright + TypeScript** 的抖音自动续火脚本。它会携带你配置的抖音 Cookie 打开聊天页，按配置的会话名称依次定位聊天对象，并从 `assets/yiyan.json` 中随机挑选一言发送出去。支持 GitHub Actions、Docker 和本地运行三种方式。
 
 ## 🚀 功能特性
 
@@ -26,11 +26,11 @@
 - 🎯 **多会话发送** - 通过 `DOUYIN_TARGET_NAMES` 配置多个聊天对象
 - 👥 **多账号续火** - 支持同时为多个账号配置续火
 - 💬 **随机一言** - 每次从 `assets/yiyan.json` 随机挑选一条 `hitokoto`，默认以 `——「出处」` 的格式附上来源
-- 🤖 **定时续火** - 通过 Github Action 每天 0 点自动续火（但是 Github 定时任务要排队，可能会延迟几个小时）
+- 🤖 **定时续火** - 通过 GitHub Actions 按计划自动续火，失败时由后续时段继续尝试
 
 ## 🧰 准备工作
 
-在配置 GitHub Actions 或本地 `.env` 之前，需要先准备抖音 Cookie 和要发送消息的会话名称。
+在选择部署方式前，需要先准备抖音 Cookie 和要发送消息的会话名称。
 
 ### 1️⃣ 获取抖音 Cookie
 
@@ -64,100 +64,38 @@
 ]
 ```
 
-后面配置 `DOUYIN_COOKIE` 时，需要把整个 JSON 数组作为 Secret 填进去。
+后续配置 `DOUYIN_COOKIE` 时，需要传入整个 JSON 数组。
 
-## 运行方式
-### ⚙️ GitHub Actions
+## 🚀 使用方式
 
-推荐直接使用 GitHub Actions 定时运行
+| 使用方式 | 需要自己的设备 | 成功率 | 说明 |
+|:---|:---:|:---:|:---|
+| [⚙️ GitHub Actions](docs/deployment/github-actions/README.md) | 否 | 低 | 抖音风控严重，基本不可用 |
+| [🐳 Docker](docs/deployment/docker/README.md) | 是 | 高 | 推荐使用此方式 |
+| [💻 本地运行](docs/deployment/local/README.md) | 是 | 高 | 只推荐无法使用 Docker 时使用此方式 |
 
-#### 1️⃣ Fork 项目
+<a id="common-config"></a>
 
-点击 GitHub 页面右上角的 `Fork`（同时希望可以 star ⭐一下本项目），把本项目复制到你自己的 GitHub 账号下。
+## ⚙️ 通用配置
 
-![fork](assets/readme/fork.jpg)
-
-Fork 后进入你自己的仓库，例如：
-
-```text
-https://github.com/你的用户名/douyin-auto-spark
-```
-
-#### 2️⃣ 配置 Secrets
-
-进入你 Fork 后的仓库：
-
-```text
-Settings -> Secrets and variables -> Actions -> New repository secret
-```
-
-![add-secret](assets/readme/add-secret.jpg)
-
-添加以下 Secrets：
-
-| Secret | 必填 | 说明 |
-|:---|:---:|:---|
-| `DOUYIN_COOKIE` | ✅ | Cookie-Editor 导出的完整 Cookie JSON 数组 |
-| `DOUYIN_TARGET_NAMES` | ✅ | 需要续火的好友名称 JSON 数组，例如 `["暮邵落白"]`，建议填写抖音备注名。不会写 JSON 的可以问下 AI |
-| `YIYAN_INCLUDE_SOURCE` | ❌ | 是否携带一言出处，默认开启；设置为 `false` 时只发送一言正文 |
-| `SPARK_MESSAGE_TEMPLATE` | ❌ | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
-
-#### 3️⃣ 手动运行一次
-
-```text
-Actions -> 点击绿色的 I understand my workflows, go ahead and enable them -> 🚀 续一次火 -> Enable workflow -> Run workflow
-```
-
-点击 `Run workflow` 后等待任务完成。手机打开抖音，你就可以发现你发了一条嘉豪语录给朋友了
-
-![run-workflow](assets/readme/run-workflow.jpg)
-
-#### 4️⃣ 每天自动运行
-
-如果手动运行一次没报错，那么默认情况下，每天北京时间 0 点会自动续一次火（不需要配置任何其他东西），但是由于 github 会延迟，大概最多凌晨 3 点之前会自动续一次火
-
-### 💻 本地运行
-
-#### 1️⃣ 安装依赖
-
-本地调试需要 Node.js 和 pnpm
-
-```bash
-pnpm install
-```
-
-#### 2️⃣ 配置环境变量
-
-复制 `.env.example` 为 `.env`，并按实际情况修改：
-
-```bash
-cp .env.example .env
-```
-
-核心配置如下：
+不同部署方式会使用不同的配置入口：GitHub Actions 使用仓库 Secrets，本地运行使用 `.env`，Docker 使用容器环境变量。各配置项的含义保持一致。
 
 | 变量 | 必填 | 默认值 | 说明 |
 |:---|:---:|:---:|:---|
 | `DOUYIN_COOKIE` | ✅ | - | Cookie-Editor 导出的完整 Cookie JSON 数组 |
-| `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的好友名称 JSON 数组 |
+| `DOUYIN_TARGET_NAMES` | ✅ | - | 要发送消息的好友名称 JSON 数组，建议使用抖音备注名 |
 | `YIYAN_INCLUDE_SOURCE` | ❌ | `true` | 是否携带一言出处，设置为 `false` 时只发送一言正文 |
-| `SPARK_MESSAGE_TEMPLATE` | ❌ | - | 自定义火花消息模板，见下方「自定义消息模板」 |
-| `PLAYWRIGHT_BROWSER_PATH` | ❌ | - | 本机 Chrome / Chromium / Edge 可执行文件路径，不填则使用 Playwright 默认浏览器 |
-| `PLAYWRIGHT_HEADLESS` | ❌ | `true` | 是否使用无头模式 |
-| `AUTO_CLOSE` | ❌ | `true` | 发送完成后是否自动关闭浏览器 |
+| `SPARK_MESSAGE_TEMPLATE` | ❌ | - | 自定义火花消息模板，见下方「✉️ 自定义消息模板」 |
+| `PLAYWRIGHT_BROWSER_PATH` | ❌ | - | 本地 Chrome / Chromium / Edge 可执行文件路径；Docker 使用镜像内浏览器 |
+| `PLAYWRIGHT_HEADLESS` | ❌ | `true` | 是否使用无头模式，Docker 建议保持 `true` |
+| `AUTO_CLOSE` | ❌ | `true` | 发送完成后是否自动关闭浏览器，Docker 建议保持 `true` |
 
-#### 3️⃣ 启动项目
-
-```bash
-pnpm dev
-```
-
-脚本会打开 `https://www.douyin.com/chat`，依次定位配置中的好友并发送随机一言。
+单账号配置使用 `DOUYIN_COOKIE` 和 `DOUYIN_TARGET_NAMES`。多账号配置请查看下方「👥 多账号配置」。
 
 
 ## 📮 邮件通知配置
 
-邮件通知是可选功能。配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会发送提醒邮件并附带失败截图；如果定时任务前一次失败、后续补充执行成功，也会发送补充执行成功邮件。
+邮件通知是 GitHub Actions 工作流提供的可选功能。配置 `MAIL_ADDRESS`、`MAIL_USERNAME` 和 `MAIL_PASSWORD` 后，续火失败会发送提醒邮件并附带失败截图；如果定时任务前一次失败、后续补充执行成功，也会发送补充执行成功邮件。
 
 | Secret | 启用邮件时必填 | 说明 |
 |:---|:---:|:---|
@@ -176,7 +114,7 @@ pnpm dev
 
 如果你只有一个账号需要续火，那么不需要关注本节。
 
-需要为多个抖音账号续火时，可以配置如 `DOUYIN_ACCOUNTS_1` 、 `DOUYIN_ACCOUNTS_2`、`DOUYIN_ACCOUNTS_3` 这些 Secrets（一直到_10）
+需要为多个抖音账号续火时，可以配置如 `DOUYIN_ACCOUNTS_1`、`DOUYIN_ACCOUNTS_2`、`DOUYIN_ACCOUNTS_3` 这些变量（一直到 `DOUYIN_ACCOUNTS_10`）。GitHub Actions 将它们配置为 Secrets，本地和 Docker 将它们配置为环境变量。
 
 例如先添加 `DOUYIN_ACCOUNTS_1` ：
 
@@ -290,6 +228,14 @@ douyin-auto-spark/
 │   └── types/
 │       ├── douyin-cookie.ts    # 🍪 抖音 Cookie 类型
 │       └── yiyan.ts            # 💬 一言数据类型
+├── docs/deployment/            # 📖 部署指南
+│   ├── README.md               # 📖 部署方式选择
+│   ├── github-actions/         # ⚙️ GitHub Actions 部署
+│   ├── local/                  # 💻 本地运行
+│   └── docker/                 # 🐳 Docker 部署
+├── .cnb.yml                    # 📦 CNB Docker 镜像构建配置
+├── .dockerignore               # 🐳 Docker 构建忽略规则
+├── Dockerfile                  # 🐳 Docker 镜像构建文件
 ├── .env.example                # ⚙️ 环境变量示例
 ├── .gitignore                  # 🙈 Git 忽略规则
 ├── .oxfmtrc.jsonc              # 🎨 oxfmt 配置
